@@ -61,7 +61,7 @@ EspFs* espFsInit(EspFsConfig* conf)
 #endif
 	}
 
-	const EspFsHeader *h = memAddr;
+	const EspFsHeader *h = (const EspFsHeader *)memAddr;
 	if (h->magic != ESPFS_MAGIC) {
 		ESP_LOGE(TAG, "Magic not found at %p", h);
 #if CONFIG_IDF_TARGET_ESP32 == 1
