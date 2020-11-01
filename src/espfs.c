@@ -38,7 +38,9 @@ const static char* TAG = "espfs";
 
 EspFs* espFsInit(EspFsConfig* conf)
 {
+#if CONFIG_IDF_TARGET_ESP32 == 1
 	spi_flash_mmap_handle_t mmapHandle = 0;
+#endif
 	const void* memAddr = conf->memAddr;
 
 	if (!memAddr) {
@@ -50,28 +52,34 @@ EspFs* espFsInit(EspFsConfig* conf)
 			return NULL;
 		}
 
+#if CONFIG_IDF_TARGET_ESP32 == 1
 		esp_err_t err = esp_partition_mmap(partition, 0, partition->size,
 				SPI_FLASH_MMAP_DATA, &memAddr, &mmapHandle);
 		if (err) {
 			return NULL;
 		}
+#endif
 	}
 
 	const EspFsHeader *h = memAddr;
 	if (h->magic != ESPFS_MAGIC) {
 		ESP_LOGE(TAG, "Magic not found at %p", h);
+#if CONFIG_IDF_TARGET_ESP32 == 1
 		if (mmapHandle) {
 			spi_flash_munmap(mmapHandle);
 		}
+#endif
 		return NULL;
 	}
 
 	EspFs* fs = malloc(sizeof(EspFs));
 	if (!fs) {
 		ESP_LOGE(TAG, "Unable to allocate EspFs");
+#if CONFIG_IDF_TARGET_ESP32 == 1
 		if (mmapHandle) {
 			spi_flash_munmap(mmapHandle);
 		}
+#endif
 		return NULL;
 	}
 
@@ -88,9 +96,11 @@ EspFs* espFsInit(EspFsConfig* conf)
 		if (h->magic != ESPFS_MAGIC) {
 			ESP_LOGE(TAG, "Magic not found while walking EspFs");
 			free(fs);
+#if CONFIG_IDF_TARGET_ESP32 == 1
 			if (mmapHandle) {
 				spi_flash_munmap(mmapHandle);
 			}
+#endif
 			return NULL;
 		}
 		entry_length = sizeof(*h) + h->nameLen + h->fileLenComp;
@@ -101,15 +111,19 @@ EspFs* espFsInit(EspFsConfig* conf)
 	} while (!(h->flags & FLAG_LASTFILE));
 
 	fs->memAddr = memAddr;
+#if CONFIG_IDF_TARGET_ESP32 == 1
 	fs->mmapHandle = mmapHandle;
+#endif
 	return fs;
 }
 
 void espFsDeinit(EspFs* fs)
 {
+#if CONFIG_IDF_TARGET_ESP32 == 1
 	if (fs->mmapHandle) {
 		spi_flash_munmap(fs->mmapHandle);
 	}
+#endif
 	free(fs);
 }
 
